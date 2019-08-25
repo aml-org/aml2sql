@@ -5,7 +5,7 @@ import scala.annotation.tailrec
 trait Utils {
 
   val MAX_CHAR_SIZE = 500
-  val PRIMARY_KEY_TYPE = "VARYING CHARACTER(36)"
+  val PRIMARY_KEY_TYPE = "VARCHAR(36)"
 
   def capitalize(id: String): String = {
     val base = id.replaceAll(" ", "_")

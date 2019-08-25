@@ -74,10 +74,10 @@ class DataBaseParser(dialect: Dialect) extends Utils {
       case "http://www.w3.org/2001/XMLSchema#dateTime"  => "TIMESTAMP"
       case "http://www.w3.org/2001/XMLSchema#string"    =>
         propertyMapping.maximum().option match {
-          case Some(max) => s"CHARACTER VARYING(${max.toInt})"
-          case _         => s"CHARACTER VARYING($MAX_CHAR_SIZE)"
+          case Some(max) => s"VARCHAR(${max.toInt})"
+          case _         => s"VARCHAR($MAX_CHAR_SIZE)"
         }
-      case _               => s"CHARACTER VARYING($MAX_CHAR_SIZE)"
+      case _               => s"VARCHAR($MAX_CHAR_SIZE)"
     }
   }
 

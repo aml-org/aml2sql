@@ -62,25 +62,6 @@ class DataBaseParser(dialect: Dialect) extends Utils {
     } collect { case Some(c) => c }
   }
 
-  protected def xsdToSql(str: String, propertyMapping: PropertyMapping): String = {
-    str match {
-      case "http://www.w3.org/2001/XMLSchema#hexBinary" => "BINARY"
-      case "http://www.w3.org/2001/XMLSchema#decimal"   => "DECIMAL"
-      case "http://www.w3.org/2001/XMLSchema#integer"   => "INTEGER"
-      case "http://www.w3.org/2001/XMLSchema#double"    => "FLOAT"
-      case "http://www.w3.org/2001/XMLSchema#boolean"   => "BOOLEAN"
-      case "http://www.w3.org/2001/XMLSchema#date"      => "DATE"
-      case "http://www.w3.org/2001/XMLSchema#time"      => "TIME"
-      case "http://www.w3.org/2001/XMLSchema#dateTime"  => "TIMESTAMP"
-      case "http://www.w3.org/2001/XMLSchema#string"    =>
-        propertyMapping.maximum().option match {
-          case Some(max) => s"VARCHAR(${max.toInt})"
-          case _         => s"VARCHAR($MAX_CHAR_SIZE)"
-        }
-      case _               => s"VARCHAR($MAX_CHAR_SIZE)"
-    }
-  }
-
   protected def computeJoinTable(table: Table, propertyMapping: PropertyMapping, tableMap: Map[String, Table]): Option[Column] = {
     val targetNodeMappingId = propertyMapping.objectRange().head.value()
     val targetNode = dialect.declares.find(_.id == targetNodeMappingId).getOrElse(throw new Exception(s"Cannot find node mapping with ID ${targetNodeMappingId} to compute JOIN table")).asInstanceOf[NodeMapping]

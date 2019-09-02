@@ -1,13 +1,14 @@
 package aml.sql.model
 
-import aml.sql.Utils
+import aml.sql.utils.Utils
 
-case class JoinTable(namespace: String,
+case class JoinTable(leftNamespace: String,
                      name: Option[String],
                      leftTable: String,
                      leftColumn: String,
                      leftCardinality: Option[Int],
                      leftProperty: Option[String],
+                     rightNamespace:String,
                      rightTable: String,
                      rightColumn: String,
                      rightCardinality: Option[Int],
@@ -22,9 +23,9 @@ case class JoinTable(namespace: String,
   }
 
   def toObjectColumn(direction: String): Column = {
-    val (name, propertyId, foreingKey, foreingTable) = direction match {
-      case "left" => (leftColumn, leftProperty.get, rightColumn, rightTable)
-      case "right"=> (rightColumn, rightProperty.get, leftColumn, leftTable)
+    val (name, propertyId, foreingKey, foreignNamespace, foreingTable) = direction match {
+      case "left" => (leftColumn, leftProperty.get, rightColumn, rightNamespace, rightTable)
+      case "right"=> (rightColumn, rightProperty.get, leftColumn, leftNamespace, leftTable)
       case _      => throw new Exception(s"Unknown join direction: '$direction': (left|right) supported")
     }
     Column(
@@ -33,6 +34,7 @@ case class JoinTable(namespace: String,
       propertyId,
       None,
       Some(foreingKey),
+      Some(foreignNamespace),
       Some(foreingTable)
     )
   }

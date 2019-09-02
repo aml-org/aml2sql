@@ -1,5 +1,6 @@
 package aml.sql
 
+import aml.sql.utils.Utils
 import org.scalatest.FunSuite
 
 class UtilsTest extends FunSuite with Utils {

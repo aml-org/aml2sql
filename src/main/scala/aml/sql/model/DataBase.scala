@@ -1,3 +1,3 @@
 package aml.sql.model
 
-case class DataBase(tables: Seq[Table], joinTables: Seq[JoinTable])
+case class DataBase(schemas: Seq[String], tables: Seq[Table], joinTables: Seq[JoinTable])

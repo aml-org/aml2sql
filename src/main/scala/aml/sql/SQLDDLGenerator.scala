@@ -1,22 +1,28 @@
 package aml.sql
 
 import aml.sql.model.{Column, DataBase, JoinTable, Table}
+import aml.sql.utils.Utils
 
 object SQLDDLGenerator extends Utils {
 
   def generate(database: DataBase): String = {
     val tables = database.tables.map(tableDDL)
     val joinTables = database.joinTables.map(joinTableDDL)
+    schemasDDL(database) + "\n\n" + (tables ++ joinTables).mkString("\n\n")
+  }
 
-    (tables ++ joinTables).mkString("\n\n")
+  def schemasDDL(database: DataBase): String = {
+    database.schemas.map { schema =>
+      s"CREATE SCHEMA IF NOT EXISTS ${schema};"
+    } mkString("\n")
   }
 
   def joinTableDDL(joinTable: JoinTable): String = {
-    val start = s"CREATE TABLE ${joinTable.namespace}.${joinTable.tableName} ("
+    val start = s"CREATE TABLE ${joinTable.leftNamespace}.${joinTable.tableName} ("
     val leftColumn = s"  ${joinTable.leftColumn}  ${PRIMARY_KEY_TYPE} NOT NULL"
     val rightColumn = s"  ${joinTable.rightColumn} ${PRIMARY_KEY_TYPE} NOT NULL"
-    val leftConstraint = s"  FOREIGN KEY(${joinTable.leftColumn}) REFERENCES ${joinTable.namespace}.${joinTable.leftTable}(${joinTable.leftColumn})"
-    val rightConstraint = s"  FOREIGN KEY(${joinTable.rightColumn}) REFERENCES ${joinTable.namespace}.${joinTable.rightTable}(${joinTable.rightColumn})"
+    val leftConstraint = s"  FOREIGN KEY(${joinTable.leftColumn}) REFERENCES ${joinTable.leftNamespace}.${joinTable.leftTable}(${joinTable.leftColumn})"
+    val rightConstraint = s"  FOREIGN KEY(${joinTable.rightColumn}) REFERENCES ${joinTable.rightNamespace}.${joinTable.rightTable}(${joinTable.rightColumn})"
     val end = ");";
 
     val definition = Seq(leftColumn, rightColumn, leftConstraint, rightConstraint).mkString(",\n")
@@ -40,6 +46,7 @@ object SQLDDLGenerator extends Utils {
     Seq(start, declaration, end).mkString("\n")
   }
 
+
   def columnDDL(column: Column, nameWidth: Int, typeWidth: Int): String = {
     val nameFill = ' '.toString * (column.name.length - nameWidth)
     val columntype = column.dataType.getOrElse(throw new Exception(s"Cannot generate scalar column DDL from missing SQL data type for column ${column}"))
@@ -51,9 +58,10 @@ object SQLDDLGenerator extends Utils {
   }
 
   def foreignKeyDDL(column: Column): String = {
-    val foreignTable = column.foreignTable.getOrElse(throw new Exception(s"Cannot generate foreign key DDL from missing foreing table for column ${column}"))
-    val foreignKey = column.foreignKey.getOrElse(throw new Exception(s"Cannot generate foreign key DDL from missing foreing key for column ${column}"))
-    s"  FOREIGN KEY(${column.name}) REFERENCES $foreignTable($foreignKey)"
+    val foreignTable = column.foreignTable.getOrElse(throw new Exception(s"Cannot generate foreign key DDL from missing foreign table for column ${column}"))
+    val foreignNamespace = column.foreignNamespace.getOrElse(throw new Exception(s"Cannot generate foreign key DDL from missing foreign namespace for column ${column}"))
+    val foreignKey = column.foreignKey.getOrElse(throw new Exception(s"Cannot generate foreign key DDL from missing foreign key for column ${column}"))
+    s"  FOREIGN KEY(${column.name}) REFERENCES $foreignNamespace.$foreignTable($foreignKey)"
   }
 
   def keyColumnDDL(table: Table): String = {

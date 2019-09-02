@@ -1,6 +1,7 @@
 package aml.sql
 
 import aml.sql.model.{Column, DataBase, JoinTable, Table}
+import aml.sql.utils.Utils
 import io.circe.Json
 
 class R2RMLGenerator(namespace: String = "http://cim.org/instances#", database: DataBase) extends Utils {
@@ -45,7 +46,7 @@ class R2RMLGenerator(namespace: String = "http://cim.org/instances#", database: 
       jobj(Seq(
         "@id" -> jstr(joinTableId(joinTable)),
         "rr:logicalTable" ->  jobj(Seq(
-          "rr:tableName" -> jstr( s"${joinTable.namespace}.${joinTable.tableName}")
+          "rr:tableName" -> jstr( s"${joinTable.leftNamespace}.${joinTable.tableName}")
         )),
         "rr:subjectMap" -> jobj(Seq(
           "rr:template" -> jstr(cim(joinTable.leftColumn))
@@ -56,7 +57,7 @@ class R2RMLGenerator(namespace: String = "http://cim.org/instances#", database: 
       jobj(Seq(
         "@id" -> jstr(joinTableId(joinTable)),
         "rr:logicalTable" ->  jobj(Seq(
-          "rr:tableName" -> jstr( s"${joinTable.namespace}.${joinTable.name}")
+          "rr:tableName" -> jstr( s"${joinTable.leftNamespace}.${joinTable.name}")
         )),
         "rr:subjectMap" -> jobj(Seq(
           "rr:template" -> jstr(cim(joinTable.rightColumn))
@@ -92,12 +93,11 @@ class R2RMLGenerator(namespace: String = "http://cim.org/instances#", database: 
   }
 
   protected def mapObjectColumn(column: Column): Json = {
-    val parentTable = database.tables.find(_.name == column.foreignTable.get).getOrElse(throw new Exception(s"Missing parent table for column '${column.name}"))
     jobj(Seq(
       "rr:predicate" -> jstr(column.propertyId),
       "rr:objectMap" -> jobj(Seq(
         "rr:parentTripleMap" -> jobj(Seq(
-          "@id" -> jstr(tableId(parentTable))
+          "@id" -> jstr(tableId(column.foreignNamespace.get, column.foreignTable.get))
         )),
         "rr:joinCondition" -> jobj(Seq(
           "rr:parent" -> jstr(column.foreignKey.getOrElse(s"Missing foreign key mapping for column ${column.name}")),
@@ -108,8 +108,9 @@ class R2RMLGenerator(namespace: String = "http://cim.org/instances#", database: 
   }
 
 
-  protected def tableId(table: Table): String = s"/${table.namespace}/${table.name}"
-  protected def joinTableId(joinTable: JoinTable): String = s"/${joinTable.namespace}/${joinTable.tableName}"
+  protected def tableId(table: Table): String = tableId(table.namespace, table.name)
+  protected def tableId(namespace: String, name: String): String = s"/${namespace}/${name}"
+  protected def joinTableId(joinTable: JoinTable): String = s"/${joinTable.leftNamespace}/${joinTable.tableName}"
 
   def jobj(fs: Seq[(String, Json)]): Json = Json.fromFields(fs)
   def jstr(str: String): Json = Json.fromString(str)

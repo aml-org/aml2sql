@@ -1,4 +1,4 @@
-package aml.sql
+package aml.sql.utils
 
 import amf.plugins.document.vocabularies.model.domain.PropertyMapping
 

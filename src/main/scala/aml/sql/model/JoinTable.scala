@@ -30,6 +30,7 @@ case class JoinTable(leftNamespace: String,
     }
     Column(
       name,
+      key = false,
       required = false,
       propertyId,
       None,

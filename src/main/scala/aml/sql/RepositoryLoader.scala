@@ -13,7 +13,11 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
 class RepositoryLoader() extends AmfUtils {
-  val globalSQL: mutable.ListBuffer[String] = mutable.ListBuffer()
+  val globalSchemasDDL: mutable.ListBuffer[String] = mutable.ListBuffer()
+  val globalConstraintsDDL: mutable.ListBuffer[String] = mutable.ListBuffer()
+  val globalJoinDefinitionsDDL: mutable.ListBuffer[String] = mutable.ListBuffer()
+  val globalDefinitionsDDL: mutable.ListBuffer[String] = mutable.ListBuffer()
+
   val globaR2RML: mutable.ListBuffer[String] = mutable.ListBuffer()
 
   def fromDirectory(path: String) = {
@@ -33,12 +37,16 @@ class RepositoryLoader() extends AmfUtils {
   }
 
   def writeGlobalFiles(path: String): Unit = {
-    val fSql = new File(path).getAbsolutePath + File.separator + "model.sql"
-    println(s"*** GENERATING GLOBAL SQL AT ${fSql}")
-    writeFile(fSql, globalSQL.mkString("\n\n"))
-    val fR2rml = new File(path).getAbsolutePath + File.separator + "model.r2rml"
-    println(s"*** GENERATING GLOBAL R2RML AT ${fR2rml}")
-    writeFile(fR2rml, globaR2RML.mkString("\n\n"))
+    // global SQL
+    val globalSQL = globalSchemasDDL.distinct ++ globalDefinitionsDDL.filter(_ != "").distinct ++ globalConstraintsDDL.distinct ++ globalJoinDefinitionsDDL.distinct
+    val fSQL = new File(path).getAbsolutePath + File.separator + "model.sql"
+    println(s"*** GENERATING GLOBAL SQL AT ${fSQL}")
+    writeFile(fSQL, globalSQL.mkString("\n\n"))
+
+    // global r2rml
+    val fR2RML = new File(path).getAbsolutePath + File.separator + "model.r2rml"
+    println(s"*** GENERATING GLOBAL R2RML AT ${fR2RML}")
+    writeFile(fR2RML, globaR2RML.mkString("\n\n"))
   }
 
 
@@ -48,7 +56,11 @@ class RepositoryLoader() extends AmfUtils {
     loadDialect("file://" + f.toFile.getAbsolutePath) map { case dialect: Dialect =>
       val database = new DataBaseParser(dialect).parse()
       val generatedSQL = SQLDDLGenerator.generate(database)
-      globalSQL += generatedSQL
+      globalSchemasDDL += SQLDDLGenerator.generateDeclarationSchemas(database)
+      globalConstraintsDDL += SQLDDLGenerator.generateTableConstraints(database)
+      globalJoinDefinitionsDDL += SQLDDLGenerator.generateDefinitionJoinTables(database)
+      globalDefinitionsDDL += SQLDDLGenerator.generateDefinitionTables(database)
+
       val generatedR2RML = new R2RMLGenerator(database = database).generate()
       globaR2RML += generatedR2RML
 

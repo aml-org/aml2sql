@@ -48,7 +48,7 @@ class DataBaseParser(dialect: Dialect) extends Utils {
     val tablesWithColumns = acc.map { table =>
       val dialectDeclaration = dialectDeclarations.find(_.nodeMapping.id == table.nodeMappingId.get).get
       val columns = columnsForTable(table, dialectDeclaration, tableMap)
-      val keyColumn = Column(table.keyColumn, true, "http://aml.org/aml2sql/primaryKey", Some(PRIMARY_KEY_TYPE), None, None, None)
+      val keyColumn = Column(table.keyColumn, key = true, required = true, "http://aml.org/aml2sql/primaryKey", Some(PRIMARY_KEY_TYPE), None, None, None)
       table.copy(columns = Seq(keyColumn) ++ columns)
     }
 
@@ -72,7 +72,7 @@ class DataBaseParser(dialect: Dialect) extends Utils {
         val propertyId = propertyMapping.nodePropertyMapping().value()
         val sqlType = xsdToSql(propertyMapping.literalRange().value(), propertyMapping)
         val required = requiredColumn(propertyMapping)
-        Some(Column(name, required, propertyId, Some(sqlType), None, None, None))
+        Some(Column(name, key = false, required, propertyId, Some(sqlType), None, None, None))
       } else if (propertyMapping.objectRange().size == 1 ) {
         computeJoinTable(dialect, table, propertyMapping, tableMap)
       } else if (propertyMapping.objectRange().size > 1) {
@@ -117,7 +117,7 @@ class DataBaseParser(dialect: Dialect) extends Utils {
     } else {
       // 1:1 Mapping
       val required = requiredColumn(propertyMapping)
-      val column = Column(joinColumn, required, propertyMapping.nodePropertyMapping().value(), Some(PRIMARY_KEY_TYPE), Some(targetTable.keyColumn), Some(targetTable.namespace),  Some(targetTable.name))
+      val column = Column(joinColumn, key = false, required, propertyMapping.nodePropertyMapping().value(), Some(PRIMARY_KEY_TYPE), Some(targetTable.keyColumn), Some(targetTable.namespace),  Some(targetTable.name))
       Some(column)
     }
   }

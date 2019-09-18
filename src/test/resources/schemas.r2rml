@@ -11,7 +11,7 @@
       "rr:subjectMap" : {
         "rr:template" : "{PLACE_ID}",
         "rr:class" : {
-          "@id" : "http://cim.org/model/Place"
+          "@id" : "http://cloudinformationmodel.org/model/Place"
         }
       },
       "rr:predicateObjectMap" : [
@@ -25,12 +25,12 @@
       "rr:subjectMap" : {
         "rr:template" : "{GEO_CODE_ID}",
         "rr:class" : {
-          "@id" : "http://cim.org/model/GeoCode"
+          "@id" : "http://cloudinformationmodel.org/model/GeoCode"
         }
       },
       "rr:predicateObjectMap" : [
         {
-          "rr:predicate" : "http://cim.org/model/icaoCode",
+          "rr:predicate" : "http://cloudinformationmodel.org/model/icaoCode",
           "rr:objectMap" : {
             "rr:column" : "ICAO_CODE",
             "rr:datatype" : {
@@ -49,7 +49,7 @@
         "rr:template" : "{PLACE_ID}"
       },
       "rr:predicateObjectMap" : {
-        "rr:predicate" : "http://cim.org/model/geoCode",
+        "rr:predicate" : "http://cloudinformationmodel.org/model/geoCode",
         "rr:objectMap" : {
           "rr:parentTripleMap" : {
             "@id" : "/PLACE_FA/GEO_CODE"

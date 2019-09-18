@@ -22,14 +22,18 @@ case class JoinTable(leftNamespace: String,
     }
   }
 
-  def toObjectColumn(direction: String): Column = {
-    val (name, propertyId, foreingKey, foreignNamespace, foreingTable) = direction match {
-      case "left" => (leftColumn, leftProperty.get, rightColumn, rightNamespace, rightTable)
-      case "right"=> (rightColumn, rightProperty.get, leftColumn, leftNamespace, leftTable)
+  def leftKey = s"${leftTable}_${leftColumn}"
+
+  def rightKey = s"${rightTable}_${rightColumn}"
+
+  def toObjectColumn(localForeignColumn: String, direction: String): Column = {
+    val (propertyId, foreingKey, foreignNamespace, foreingTable) = direction match {
+      case "left" => (leftProperty.get, rightColumn, rightNamespace, rightTable)
+      case "right"=> (rightProperty.get, leftColumn, leftNamespace, leftTable)
       case _      => throw new Exception(s"Unknown join direction: '$direction': (left|right) supported")
     }
     Column(
-      name,
+      localForeignColumn,
       key = false,
       required = false,
       propertyId,

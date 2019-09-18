@@ -4,7 +4,7 @@ import aml.sql.model.{Column, DataBase, JoinTable, Table}
 import aml.sql.utils.Utils
 import io.circe.Json
 
-class R2RMLGenerator(namespace: String = "http://cim.org/instances#", database: DataBase) extends Utils {
+class R2RMLGenerator(namespace: String = "http://cloudinformationmodel.org/instances#", database: DataBase) extends Utils {
 
   def generate(): String = {
     val mappedTables = database.tables.map { table =>
@@ -42,6 +42,14 @@ class R2RMLGenerator(namespace: String = "http://cim.org/instances#", database: 
   }
 
   protected def mapJoinTable(joinTable: JoinTable): Json = {
+    var leftKey = joinTable.leftKey
+    var rightKey = joinTable.rightKey
+
+    if (leftKey == rightKey) { // recursive table
+      leftKey = leftKey + "_LEFT"
+      rightKey = rightKey + "_RIGHT"
+    }
+
     if (joinTable.leftProperty.isDefined) {
       jobj(Seq(
         "@id" -> jstr(joinTableId(joinTable)),
@@ -49,9 +57,9 @@ class R2RMLGenerator(namespace: String = "http://cim.org/instances#", database: 
           "rr:tableName" -> jstr( s"${joinTable.leftNamespace}.${joinTable.tableName}")
         )),
         "rr:subjectMap" -> jobj(Seq(
-          "rr:template" -> jstr(cim(joinTable.leftColumn))
+          "rr:template" -> jstr(cim(leftKey))
         )),
-        "rr:predicateObjectMap" -> mapObjectColumn(joinTable.toObjectColumn("left"))
+        "rr:predicateObjectMap" -> mapObjectColumn(joinTable.toObjectColumn(rightKey, "left"))
       ))
     } else {
       jobj(Seq(
@@ -60,9 +68,9 @@ class R2RMLGenerator(namespace: String = "http://cim.org/instances#", database: 
           "rr:tableName" -> jstr( s"${joinTable.leftNamespace}.${joinTable.name}")
         )),
         "rr:subjectMap" -> jobj(Seq(
-          "rr:template" -> jstr(cim(joinTable.rightColumn))
+          "rr:template" -> jstr(cim(rightKey))
         )),
-        "rr:predicateObjectMap" -> mapObjectColumn(joinTable.toObjectColumn("right"))
+        "rr:predicateObjectMap" -> mapObjectColumn(joinTable.toObjectColumn(leftKey, "right"))
       ))
     }
 
@@ -100,7 +108,7 @@ class R2RMLGenerator(namespace: String = "http://cim.org/instances#", database: 
           "@id" -> jstr(tableId(column.foreignNamespace.get, column.foreignTable.get))
         )),
         "rr:joinCondition" -> jobj(Seq(
-          "rr:parent" -> jstr(column.foreignKey.getOrElse(s"Missing foreign key mapping for column ${column.name}")),
+          "rr:parent" -> jstr(column.name),
           "rr:child" -> jstr(column.foreignKey.getOrElse(s"Missing foreign key mapping for column ${column.name}"))
         ))
       ))
@@ -109,8 +117,8 @@ class R2RMLGenerator(namespace: String = "http://cim.org/instances#", database: 
 
 
   protected def tableId(table: Table): String = tableId(table.namespace, table.name)
-  protected def tableId(namespace: String, name: String): String = s"/${namespace}/${name}"
-  protected def joinTableId(joinTable: JoinTable): String = s"/${joinTable.leftNamespace}/${joinTable.tableName}"
+  protected def tableId(namespace: String, name: String): String = s"/${namespace}/${name}".toLowerCase()
+  protected def joinTableId(joinTable: JoinTable): String = s"/${joinTable.leftNamespace}/${joinTable.tableName}".toLowerCase()
 
   def jobj(fs: Seq[(String, Json)]): Json = Json.fromFields(fs)
   def jstr(str: String): Json = Json.fromString(str)

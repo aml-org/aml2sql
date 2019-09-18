@@ -35,11 +35,18 @@ object SQLDDLGenerator extends Utils {
   }
 
   protected def joinTableDDL(joinTable: JoinTable): String = {
+    var leftKey = joinTable.leftKey
+    var rightKey = joinTable.rightKey
+
+    if (leftKey == rightKey) { // recursive table
+      leftKey = leftKey + "_LEFT"
+      rightKey = rightKey + "_RIGHT"
+    }
     val start = s"CREATE TABLE ${joinTable.leftNamespace}.${joinTable.tableName} ("
-    val leftColumn = s"  ${joinTable.leftColumn}  ${PRIMARY_KEY_TYPE} NOT NULL"
-    val rightColumn = s"  ${joinTable.rightColumn} ${PRIMARY_KEY_TYPE} NOT NULL"
-    val leftConstraint = s"  FOREIGN KEY(${joinTable.leftColumn}) REFERENCES ${joinTable.leftNamespace}.${joinTable.leftTable}(${joinTable.leftColumn})"
-    val rightConstraint = s"  FOREIGN KEY(${joinTable.rightColumn}) REFERENCES ${joinTable.rightNamespace}.${joinTable.rightTable}(${joinTable.rightColumn})"
+    val leftColumn = s"  ${leftKey}  ${PRIMARY_KEY_TYPE} NOT NULL"
+    val rightColumn = s"  ${rightKey} ${PRIMARY_KEY_TYPE} NOT NULL"
+    val leftConstraint = s"  FOREIGN KEY(${leftKey}) REFERENCES ${joinTable.leftNamespace}.${joinTable.leftTable}(${joinTable.leftColumn})"
+    val rightConstraint = s"  FOREIGN KEY(${rightKey}) REFERENCES ${joinTable.rightNamespace}.${joinTable.rightTable}(${joinTable.rightColumn})"
     val end = ");";
 
     val definition = Seq(leftColumn, rightColumn, leftConstraint, rightConstraint).mkString(",\n")

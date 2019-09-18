@@ -1,5 +1,6 @@
 package aml.sql.utils
 
+import amf.core.vocabulary.Namespace
 import amf.plugins.document.vocabularies.model.domain.PropertyMapping
 
 import scala.annotation.tailrec
@@ -31,15 +32,16 @@ trait Utils {
 
   def xsdToSql(str: String, propertyMapping: PropertyMapping): String = {
     str match {
-      case "http://www.w3.org/2001/XMLSchema#hexBinary" => "BINARY"
-      case "http://www.w3.org/2001/XMLSchema#decimal"   => "DECIMAL"
-      case "http://www.w3.org/2001/XMLSchema#integer"   => "INTEGER"
-      case "http://www.w3.org/2001/XMLSchema#double"    => "FLOAT"
-      case "http://www.w3.org/2001/XMLSchema#boolean"   => "BOOLEAN"
-      case "http://www.w3.org/2001/XMLSchema#date"      => "DATE"
-      case "http://www.w3.org/2001/XMLSchema#time"      => "TIME"
-      case "http://www.w3.org/2001/XMLSchema#dateTime"  => "TIMESTAMP"
-      case "http://www.w3.org/2001/XMLSchema#string"    =>
+      case _ if str == (Namespace.Shapes + "guid").iri() => PRIMARY_KEY_TYPE
+      case "http://www.w3.org/2001/XMLSchema#hexBinary"  => "BINARY"
+      case "http://www.w3.org/2001/XMLSchema#decimal"    => "DECIMAL"
+      case "http://www.w3.org/2001/XMLSchema#integer"    => "INTEGER"
+      case "http://www.w3.org/2001/XMLSchema#double"     => "FLOAT"
+      case "http://www.w3.org/2001/XMLSchema#boolean"    => "BOOLEAN"
+      case "http://www.w3.org/2001/XMLSchema#date"       => "DATE"
+      case "http://www.w3.org/2001/XMLSchema#time"       => "TIME"
+      case "http://www.w3.org/2001/XMLSchema#dateTime"   => "TIMESTAMP"
+      case "http://www.w3.org/2001/XMLSchema#string"     =>
         propertyMapping.maximum().option match {
           case Some(max) => s"VARCHAR(${max.toInt})"
           case _         => s"VARCHAR($MAX_CHAR_SIZE)"

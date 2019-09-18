@@ -15,7 +15,7 @@ nodeMappings:
         propertyTerm: PlaceFA.icaoCode
         range: string
 external:
-  PlaceFA: http://cim.org/model/
+  PlaceFA: http://cloudinformationmodel.org/model/
 dialect: PlaceFA
 version: "1.0"
 documents:

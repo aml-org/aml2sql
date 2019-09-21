@@ -14,12 +14,8 @@ case class JoinTable(leftNamespace: String,
                      rightCardinality: Option[Int],
                      rightProperty: Option[String]) extends Utils {
   val tableName: String = {
-    val column = name.getOrElse("JOIN")
-    if (column.endsWith(rightTable)) {
-      s"""${leftTable}_$column"""
-    } else {
-      s"${leftTable}_${column}_${rightTable}"
-    }
+    val name = this.name.getOrElse(leftColumn)
+    s"${leftTable}_${name}_JOIN"
   }
 
   def leftKey = s"${leftTable}_${leftColumn}"

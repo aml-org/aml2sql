@@ -4,7 +4,7 @@
   },
   "@graph" : [
     {
-      "@id" : "/PLACE_FA/PLACE",
+      "@id" : "/place_fa/place",
       "rr:logicalTable" : {
         "rr:tableName" : "PLACE_FA.PLACE"
       },
@@ -18,7 +18,7 @@
       ]
     },
     {
-      "@id" : "/PLACE_FA/GEO_CODE",
+      "@id" : "/place_fa/geo_code",
       "rr:logicalTable" : {
         "rr:tableName" : "PLACE_FA.GEO_CODE"
       },
@@ -41,21 +41,21 @@
       ]
     },
     {
-      "@id" : "/PLACE_FA/PLACE_GEO_CODE",
+      "@id" : "/place_fa/place_geo_code_join",
       "rr:logicalTable" : {
-        "rr:tableName" : "PLACE_FA.PLACE_GEO_CODE"
+        "rr:tableName" : "PLACE_FA.PLACE_GEO_CODE_JOIN"
       },
       "rr:subjectMap" : {
-        "rr:template" : "{PLACE_ID}"
+        "rr:template" : "{PLACE_PLACE_ID}"
       },
       "rr:predicateObjectMap" : {
         "rr:predicate" : "http://cloudinformationmodel.org/model/geoCode",
         "rr:objectMap" : {
           "rr:parentTripleMap" : {
-            "@id" : "/PLACE_FA/GEO_CODE"
+            "@id" : "/place_fa/geo_code"
           },
           "rr:joinCondition" : {
-            "rr:parent" : "GEO_CODE_ID",
+            "rr:parent" : "GEO_CODE_GEO_CODE_ID",
             "rr:child" : "GEO_CODE_ID"
           }
         }

@@ -168,7 +168,7 @@ class DataBaseParser(dialect: Dialect) extends Utils {
       // N:M mapping
       val joinTable = JoinTable(
         leftNamespace = namespace(dialect),
-        name = None,
+        name = Some(columnName(propertyMapping).replace("_ID", "")),
         leftTable = table.name,
         leftColumn = table.keyColumn, // we don't use the join column here, we join by id
         leftCardinality = Some(1),
@@ -179,6 +179,7 @@ class DataBaseParser(dialect: Dialect) extends Utils {
         rightCardinality = propertyMapping.maximum().option().map(_.toInt),
         rightProperty = None
       )
+
       joinTables ++= Seq(joinTable)
       None
     } else {

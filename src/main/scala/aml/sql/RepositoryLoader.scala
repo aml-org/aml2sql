@@ -18,7 +18,7 @@ class RepositoryLoader() extends AmfUtils {
   val globalJoinDefinitionsDDL: mutable.ListBuffer[String] = mutable.ListBuffer()
   val globalDefinitionsDDL: mutable.ListBuffer[String] = mutable.ListBuffer()
 
-  val globaR2RML: mutable.ListBuffer[String] = mutable.ListBuffer()
+  val globalR2RML: mutable.ListBuffer[String] = mutable.ListBuffer()
 
   def fromDirectory(path: String) = {
     var files = Files.walk(Paths.get(path)).iterator().asScala
@@ -36,17 +36,30 @@ class RepositoryLoader() extends AmfUtils {
     Future.sequence(futures)
   }
 
+  def wrapGlobal(str: String): String = {
+    s"""
+      |{
+      |  "@context": {
+      |    "rr": "http://www.w3.org/ns/r2rml#"
+      |  },
+      |  "@graph": [
+      |    ${str}
+      |  ]
+      |}
+      |""".stripMargin
+  }
+
   def writeGlobalFiles(path: String): Unit = {
     // global SQL
-    val globalSQL = globalSchemasDDL.distinct ++ globalDefinitionsDDL.filter(_ != "").distinct ++ globalConstraintsDDL.distinct ++ globalJoinDefinitionsDDL.distinct
-    val fSQL = new File(path).getAbsolutePath + File.separator + "model.sql"
+    val globalSQL = /* globalSchemasDDL.distinct ++ */globalDefinitionsDDL.filter(_ != "").distinct ++ globalConstraintsDDL.distinct ++ globalJoinDefinitionsDDL.distinct
+    val fSQL = new File(path).getAbsolutePath + File.separator + "schema.sql"
     println(s"*** GENERATING GLOBAL SQL AT ${fSQL}")
     writeFile(fSQL, globalSQL.mkString("\n\n"))
 
     // global r2rml
-    val fR2RML = new File(path).getAbsolutePath + File.separator + "model.r2rml"
+    val fR2RML = new File(path).getAbsolutePath + File.separator + "schema.r2rml"
     println(s"*** GENERATING GLOBAL R2RML AT ${fR2RML}")
-    writeFile(fR2RML, globaR2RML.mkString("\n\n"))
+    writeFile(fR2RML, wrapGlobal(globalR2RML.mkString(",\n")))
   }
 
 
@@ -62,7 +75,7 @@ class RepositoryLoader() extends AmfUtils {
       globalDefinitionsDDL += SQLDDLGenerator.generateDefinitionTables(database)
 
       val generatedR2RML = new R2RMLGenerator(database = database).generate()
-      globaR2RML += generatedR2RML
+      globalR2RML += new R2RMLGenerator(database = database).generate(global = true)
 
       var targetPath = f.toFile.getAbsolutePath.replace("schema.yaml", "database.sql")
       writeFile(targetPath, generatedSQL)

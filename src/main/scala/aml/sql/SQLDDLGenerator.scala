@@ -7,8 +7,8 @@ object SQLDDLGenerator extends Utils {
 
   // Generates a self contained schema that replaces existing tables
   def generate(database: DataBase): String = {
-    val tables = database.tables.map(tableDDL)
-    val joinTables = database.joinTables.map(joinTableDDL)
+    val tables = database.tables.map(t => tableDDL(t))
+    val joinTables = database.joinTables.map(t => joinTableDDL(t))
     schemasDDL(database) + "\n\n" + (tables ++ joinTables).mkString("\n\n")
   }
   ////////////////////////
@@ -17,13 +17,13 @@ object SQLDDLGenerator extends Utils {
   // taking into account dependencies among tables
   def generateDeclarationSchemas(database: DataBase): String = schemasDDL(database)
   def generateDefinitionTables(database: DataBase): String = {
-    database.tables.map(tableDefinitionDDL).mkString("\n\n")
+    database.tables.map(t => tableDefinitionDDL(t, global = true)).mkString("\n\n")
   }
   def generateTableConstraints(database: DataBase): String = {
-    database.tables.map(tableConstraintDDL).mkString("\n\n")
+    database.tables.map(t => tableConstraintDDL(t, global = true)).mkString("\n\n")
   }
   def generateDefinitionJoinTables(database: DataBase): String = {
-    database.joinTables.map(joinTableDDL).mkString("\n\n")
+    database.joinTables.map(t => joinTableDDL(t, global = true)).mkString("\n\n")
   }
 
   ////////////////////////
@@ -34,7 +34,7 @@ object SQLDDLGenerator extends Utils {
     } mkString("\n")
   }
 
-  protected def joinTableDDL(joinTable: JoinTable): String = {
+  protected def joinTableDDL(joinTable: JoinTable, global: Boolean = false): String = {
     var leftKey = joinTable.leftKey
     var rightKey = joinTable.rightKey
 
@@ -42,19 +42,24 @@ object SQLDDLGenerator extends Utils {
       leftKey = leftKey + "_LEFT"
       rightKey = rightKey + "_RIGHT"
     }
-    val start = s"CREATE TABLE ${joinTable.leftNamespace}.${joinTable.tableName} ("
+
+    val lefPrefix = if (global) { "" } else { s"${joinTable.leftNamespace}." }
+    val rightPrefix = if (global) { "" } else { s"${joinTable.rightNamespace}." }
+
+    val start = s"CREATE TABLE ${lefPrefix}${joinTable.tableName} ("
     val leftColumn = s"  ${leftKey}  ${PRIMARY_KEY_TYPE} NOT NULL"
     val rightColumn = s"  ${rightKey} ${PRIMARY_KEY_TYPE} NOT NULL"
-    val leftConstraint = s"  FOREIGN KEY(${leftKey}) REFERENCES ${joinTable.leftNamespace}.${joinTable.leftTable}(${joinTable.leftColumn})"
-    val rightConstraint = s"  FOREIGN KEY(${rightKey}) REFERENCES ${joinTable.rightNamespace}.${joinTable.rightTable}(${joinTable.rightColumn})"
+    val leftConstraint = s"  FOREIGN KEY(${leftKey}) REFERENCES ${lefPrefix}${joinTable.leftTable}(${joinTable.leftColumn})"
+    val rightConstraint = s"  FOREIGN KEY(${rightKey}) REFERENCES ${rightPrefix}${joinTable.rightTable}(${joinTable.rightColumn})"
     val end = ");";
 
     val definition = Seq(leftColumn, rightColumn, leftConstraint, rightConstraint).mkString(",\n")
     Seq(start, definition, end).mkString("\n")
   }
 
-  protected def tableDefinitionDDL(table: Table): String = {
-    val start = s"CREATE TABLE IF NOT EXISTS ${table.namespace}.${table.name} ("
+  protected def tableDefinitionDDL(table: Table, global: Boolean = false): String = {
+    val prefix = if (global) { "" } else { s"${table.namespace}." }
+    val start = s"CREATE TABLE IF NOT EXISTS ${prefix}${table.name} ("
     val nameLength = table.columns.map(_.name.length).max
     val typeLength = table.columns.map(c => c.dataType.orElse(c.foreignKey)).collect{case Some(r: String) => r.length }.max
 
@@ -67,10 +72,11 @@ object SQLDDLGenerator extends Utils {
     Seq(start, declaration, end).mkString("\n")
   }
 
-  protected def tableConstraintDDL(table: Table): String = {
-    val start = s"ALTER TABLE IF EXISTS ${table.namespace}.${table.name}"
+  protected def tableConstraintDDL(table: Table, global: Boolean = false): String = {
+    val prefix = if (global) { "" } else { s"${table.namespace}." }
+    val start = s"ALTER TABLE IF EXISTS ${prefix}${table.name}"
 
-    val constraints = Seq(keyColumnDDL(table)) ++ table.columns.filter(_.foreignKey.isDefined).map(foreignKeyDDL)
+    val constraints = Seq(keyColumnDDL(table)) ++ table.columns.filter(_.foreignKey.isDefined).map(c => foreignKeyDDL(c, global))
 
     val declaration = constraints.map("ADD " + _).mkString(",\n")
     val end = ";"
@@ -81,15 +87,16 @@ object SQLDDLGenerator extends Utils {
       ""
   }
 
-  protected def tableDDL(table: Table): String = {
-    val start = s"CREATE TABLE ${table.namespace}.${table.name} ("
+  protected def tableDDL(table: Table, global: Boolean = false): String = {
+    val prefix = if (global) { "" } else { s"${table.namespace}." }
+    val start = s"CREATE TABLE ${prefix}${table.name} ("
     val nameLength = table.columns.map(_.name.length).max
     val typeLength = table.columns.map(c => c.dataType.orElse(c.foreignKey)).collect{case Some(r: String) => r.length }.max
 
     var columns = table.columns.map { column =>
       columnDDL(column, nameLength + 4, typeLength + 4)
     }
-    var constraints = Seq(keyColumnDDL(table)) ++ table.columns.filter(_.foreignKey.isDefined).map(foreignKeyDDL)
+    var constraints = Seq(keyColumnDDL(table)) ++ table.columns.filter(_.foreignKey.isDefined).map(c => foreignKeyDDL(c,global))
 
     val declaration = (columns ++ constraints).mkString(",\n")
     val end = ");"
@@ -110,11 +117,12 @@ object SQLDDLGenerator extends Utils {
       s"  ${column.name}${nameFill} ${columntype}"
   }
 
-  protected def foreignKeyDDL(column: Column): String = {
+  protected def foreignKeyDDL(column: Column, global: Boolean = false): String = {
     val foreignTable = column.foreignTable.getOrElse(throw new Exception(s"Cannot generate foreign key DDL from missing foreign table for column ${column}"))
     val foreignNamespace = column.foreignNamespace.getOrElse(throw new Exception(s"Cannot generate foreign key DDL from missing foreign namespace for column ${column}"))
     val foreignKey = column.foreignKey.getOrElse(throw new Exception(s"Cannot generate foreign key DDL from missing foreign key for column ${column}"))
-    s"  FOREIGN KEY(${column.name}) REFERENCES $foreignNamespace.$foreignTable($foreignKey)"
+    val prefix = if (global) { "" } else { s"${foreignNamespace}." }
+    s"  FOREIGN KEY(${column.name}) REFERENCES $prefix$foreignTable($foreignKey)"
   }
 
   protected def keyColumnDDL(table: Table): String = {

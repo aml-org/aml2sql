@@ -6,30 +6,36 @@ import io.circe.Json
 
 class R2RMLGenerator(namespace: String = "http://cloudinformationmodel.org/instances#", database: DataBase) extends Utils {
 
-  def generate(): String = {
+  def generate(global: Boolean = false): String = {
     val mappedTables = database.tables.map { table =>
-      mapTable(table)
+      mapTable(table, global)
     }
     val mappedJoinTables = database.joinTables.map { joinTable =>
-      mapJoinTable(joinTable)
+      mapJoinTable(joinTable, global)
     }
-    jobj(Seq(
-      "@context" -> jobj(Seq(
-        "rr" -> jstr("http://www.w3.org/ns/r2rml#")
-      )),
-      "@graph" -> jarray(
-        mappedTables ++ mappedJoinTables
-      )
-    )).toString()
+
+    if (global) {
+      jarray(mappedTables ++ mappedJoinTables).toString()
+    } else {
+      jobj(Seq(
+        "@context" -> jobj(Seq(
+          "rr" -> jstr("http://www.w3.org/ns/r2rml#")
+        )),
+        "@graph" -> jarray(
+          mappedTables ++ mappedJoinTables
+        )
+      )).toString()
+    }
   }
 
-  protected def mapTable(table: Table): Json = {
+  protected def mapTable(table: Table, global: Boolean = false): Json = {
     val scalarMappings: Seq[Json] = scalarColumns(table).map(mapScalarColumn)
     val objectMappings: Seq[Json] = objectColumns(table).map(mapObjectColumn)
+    val prefix = if (global) { "" } else { s"${table.namespace}." }
     jobj(Seq(
       "@id" -> jstr(tableId(table)),
       "rr:logicalTable" ->  jobj(Seq(
-        "rr:tableName" -> jstr( s"${table.namespace}.${table.name}")
+        "rr:tableName" -> jstr( s"${prefix}${table.name}")
       )),
       "rr:subjectMap" -> jobj(Seq(
         "rr:template" -> jstr(cim(table.keyColumn)),
@@ -41,7 +47,7 @@ class R2RMLGenerator(namespace: String = "http://cloudinformationmodel.org/insta
     ))
   }
 
-  protected def mapJoinTable(joinTable: JoinTable): Json = {
+  protected def mapJoinTable(joinTable: JoinTable, global: Boolean = false): Json = {
     var leftKey = joinTable.leftKey
     var rightKey = joinTable.rightKey
 
@@ -50,11 +56,14 @@ class R2RMLGenerator(namespace: String = "http://cloudinformationmodel.org/insta
       rightKey = rightKey + "_RIGHT"
     }
 
+
+    val leftPrefix = if (global) { "" } else { s"${joinTable.leftNamespace}." }
+
     if (joinTable.leftProperty.isDefined) {
       jobj(Seq(
         "@id" -> jstr(joinTableId(joinTable)),
         "rr:logicalTable" ->  jobj(Seq(
-          "rr:tableName" -> jstr( s"${joinTable.leftNamespace}.${joinTable.tableName}")
+          "rr:tableName" -> jstr( s"${leftPrefix}${joinTable.tableName}")
         )),
         "rr:subjectMap" -> jobj(Seq(
           "rr:template" -> jstr(cim(leftKey))
@@ -65,7 +74,7 @@ class R2RMLGenerator(namespace: String = "http://cloudinformationmodel.org/insta
       jobj(Seq(
         "@id" -> jstr(joinTableId(joinTable)),
         "rr:logicalTable" ->  jobj(Seq(
-          "rr:tableName" -> jstr( s"${joinTable.leftNamespace}.${joinTable.name}")
+          "rr:tableName" -> jstr( s"${leftKey}.${joinTable.name}")
         )),
         "rr:subjectMap" -> jobj(Seq(
           "rr:template" -> jstr(cim(rightKey))
@@ -84,7 +93,9 @@ class R2RMLGenerator(namespace: String = "http://cloudinformationmodel.org/insta
 
   protected def mapScalarColumn(column: Column): Json = {
     jobj(Seq(
-      "rr:predicate" -> jstr(column.propertyId),
+      "rr:predicate" -> jobj(Seq(
+        "@id" -> jstr(column.propertyId)
+      )),
       "rr:objectMap" -> jobj(Seq(
         "rr:column" -> jstr(column.name),
         "rr:datatype" -> jobj(Seq(
@@ -102,14 +113,16 @@ class R2RMLGenerator(namespace: String = "http://cloudinformationmodel.org/insta
 
   protected def mapObjectColumn(column: Column): Json = {
     jobj(Seq(
-      "rr:predicate" -> jstr(column.propertyId),
+      "rr:predicate" -> jobj(Seq(
+        "@id" -> jstr(column.propertyId)
+      )),
       "rr:objectMap" -> jobj(Seq(
-        "rr:parentTripleMap" -> jobj(Seq(
+        "rr:parentTriplesMap" -> jobj(Seq(
           "@id" -> jstr(tableId(column.foreignNamespace.get, column.foreignTable.get))
         )),
         "rr:joinCondition" -> jobj(Seq(
-          "rr:parent" -> jstr(column.name),
-          "rr:child" -> jstr(column.foreignKey.getOrElse(s"Missing foreign key mapping for column ${column.name}"))
+          "rr:child" -> jstr(column.name),
+          "rr:parent" -> jstr(column.foreignKey.getOrElse(s"Missing foreign key mapping for column ${column.name}"))
         ))
       ))
     ))

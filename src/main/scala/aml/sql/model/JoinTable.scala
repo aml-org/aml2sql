@@ -15,7 +15,14 @@ case class JoinTable(leftNamespace: String,
                      rightProperty: Option[String]) extends Utils {
   val tableName: String = {
     val name = this.name.getOrElse(leftColumn)
-    s"${leftTable}_${name}_JOIN"
+    val candiate = s"${leftTable}_${name}_JOIN"
+    if (candiate.length > 63) { // limit in Postgres
+      val leftTableShrinked = leftTable.split("_").map(w => w.take(3).mkString).mkString("_")
+      val nameShrinked = name.split("_").map(w => w.take(3).mkString).mkString("_")
+      s"${leftTableShrinked}_${nameShrinked}_JOIN"
+    } else {
+      candiate
+    }
   }
 
   def leftKey = s"${leftTable}_${leftColumn}"

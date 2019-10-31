@@ -30,7 +30,9 @@
       },
       "rr:predicateObjectMap" : [
         {
-          "rr:predicate" : "http://cloudinformationmodel.org/model/icaoCode",
+          "rr:predicate" : {
+            "@id" : "http://cloudinformationmodel.org/model/icaoCode"
+          },
           "rr:objectMap" : {
             "rr:column" : "ICAO_CODE",
             "rr:datatype" : {
@@ -49,14 +51,16 @@
         "rr:template" : "{PLACE_PLACE_ID}"
       },
       "rr:predicateObjectMap" : {
-        "rr:predicate" : "http://cloudinformationmodel.org/model/geoCode",
+        "rr:predicate" : {
+          "@id" : "http://cloudinformationmodel.org/model/geoCode"
+        },
         "rr:objectMap" : {
-          "rr:parentTripleMap" : {
+          "rr:parentTriplesMap" : {
             "@id" : "/place_fa/geo_code"
           },
           "rr:joinCondition" : {
-            "rr:parent" : "GEO_CODE_GEO_CODE_ID",
-            "rr:child" : "GEO_CODE_ID"
+            "rr:child" : "GEO_CODE_GEO_CODE_ID",
+            "rr:parent" : "GEO_CODE_ID"
           }
         }
       }

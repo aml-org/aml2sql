@@ -1,6 +1,6 @@
 name := "aml2sql"
-
-version := "0.1"
+organization := "com.github.amlorg"
+version := "0.1.0"
 
 scalaVersion := "2.12.0"
 
